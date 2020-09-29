@@ -165,7 +165,6 @@ HealthyPi.prototype.getSensors = async function () {
     return sensors;
 };
 
-
 //
 /**
  * Performs the pre-checks and maps the incoming call to a sensor action.
@@ -177,7 +176,7 @@ HealthyPi.prototype._passToSensor = async function (fnName, args) {
     let sensorId = args.shift();
     const sensor = await this._getSensor(sensorId);
     if (sensor && sensor.accepts(this.caller.clientId)) {
-        let rv = sensor[fnName].apply(sensor, args);
+        let rv = sensor[fnName](sensor, args);
         if (rv === undefined) rv = true;
         return rv;
     }
@@ -198,10 +197,38 @@ if (HEALTHYPI_MODE === 'native' || HEALTHYPI_MODE === 'both') {
 
     /**
      * Gets the current vitals from the sensor.
-     * @param {string} sensor name of the sensor (matches at the end
+     * @param {string} sensor name of the sensor (matches at the end)
      */
     HealthyPi.prototype.getVitals = function (sensor) {
         return this._passToSensor('getVitals', arguments);
+    };
+    /**
+     * Gets the current heart rate from the sensor.
+     * @param {String} sensor name of the sensor (matches at the end)
+     */
+    HealthyPi.prototype.getHeartRate = async function (sensor) {
+        return (await this.getVitals(sensor)).heartRate;
+    };
+    /**
+     * Gets the current respiration rate from the sensor.
+     * @param {String} sensor name of the sensor (matches at the end)
+     */
+    HealthyPi.prototype.getRespirationRate = async function (sensor) {
+        return (await this.getVitals(sensor)).respirationRate;
+    };
+    /**
+     * Gets the current spo2 from the sensor.
+     * @param {String} sensor name of the sensor (matches at the end)
+     */
+    HealthyPi.prototype.getSPO2 = async function (sensor) {
+        return (await this.getVitals(sensor)).spo2;
+    };
+    /**
+     * Gets the current temperature from the sensor.
+     * @param {String} sensor name of the sensor (matches at the end)
+     */
+    HealthyPi.prototype.getTemperature = async function (sensor) {
+        return (await this.getVitals(sensor)).temperature;
     };
 
     /**

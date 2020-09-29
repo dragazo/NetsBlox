@@ -6,7 +6,7 @@ const ciphers = require('../roboscape/ciphers');
 
 // these might be better defined as an attribute on the sensor
 const FORGET_TIME = 120; // forgetting a sensor in seconds
-const RESPONSE_TIMEOUT = 200; // waiting for response in milliseconds
+const RESPONSE_TIMEOUT = 500; // waiting for response in milliseconds (has to be a bit longer than roboscape cause healthypi is doing other stuff like serial and webserver)
 
 var Sensor = function (mac_addr, ip4_addr, ip4_port, aServer) {
     this.id = mac_addr;
@@ -187,16 +187,14 @@ Sensor.prototype.receiveFromSensor = function (msgType, timeout) {
     });
 };
 
-Sensor.prototype.getVitals = function () {
+Sensor.prototype.getVitals = async function () {
     this._logger.log('get vitals ' + this.mac_addr);
-    let promise = this.receiveFromSensor('vitals');
-    let message = Buffer.alloc(1);
+    const response = this.receiveFromSensor('vitals');
+    const message = Buffer.alloc(1);
     message.write('V', 0, 1);
     this.sendToSensor(message);
-    return promise.then(value => {
-        console.log(`vitals response: ${value}`);
-        return value;   
-    });
+    const resp = await response;
+    return {heartRate:resp.heartRate, respirationRate:resp.respirationRate, spo2:resp.spo2, temperature:resp.temperature};   
 };
 
 Sensor.prototype.commandToClient = function (command) {
@@ -330,6 +328,30 @@ Sensor.prototype.onCommand = function(command) {
             regex: /^get vitals$/,
             handler: () => {
                 return this.getVitals();
+            }
+        },
+        {
+            regex: /^get heart rate$/,
+            handler: async () => {
+                return (await this.getVitals()).heartRate;
+            }
+        },
+        {
+            regex: /^get respiration rate$/,
+            handler: async () => {
+                return (await this.getVitals()).respirationRate;
+            }
+        },
+        {
+            regex: /^get (spo|SPO)2$/,
+            handler: async () => {
+                return (await this.getVitals()).spo2;
+            }
+        },
+        {
+            regex: /^get temperature$/,
+            handler: async () => {
+                return (await this.getVitals()).temperature;
             }
         },
         {
