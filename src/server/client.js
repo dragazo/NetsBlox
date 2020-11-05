@@ -324,11 +324,10 @@ class Client {
         const address = await NetsBloxAddress.new(dstId, this.projectId, this.roleId);
         const states = address.resolve();
         const clients = states
-            .map(state => {
+            .flatMap(state => {
                 const [projectId, roleId] = state;
                 return NetworkTopology.getSocketsAt(projectId, roleId);
-            })
-            .reduce((l1, l2) => l1.concat(l2), []);
+            });
 
         clients.forEach(client => {
             msg.dstId = Constants.EVERYONE;
@@ -347,17 +346,10 @@ class Client {
         }
     }
 
-    async requestActionsAfter (actionId, silent) {
-        if (!this.projectId) {
-            this._logger.error(`User requested actions without project: ${this.username}`);
-            this.send({type: 'request-actions-complete'});
-            return;
-        }
-
+    async requestActionsAfter (projectId, roleId, actionId, silent) {
         try {
-            const actions = await ProjectActions.getActionsAfter(this.projectId, this.roleId, actionId);
+            const actions = await ProjectActions.getActionsAfter(projectId, roleId, actionId);
             actions.forEach(action => this.send(action));
-            this.send({type: 'request-actions-complete'});
         } catch (err) {
             if (!silent) {
                 this.send({
@@ -367,6 +359,7 @@ class Client {
                 });
             }
         }
+        this.send({type: 'request-actions-complete'});
     }
 
     setState(projectId, roleId, username) {
@@ -413,7 +406,7 @@ Client.MessageHandlers = {
     'message': async function(msg) {
         const dstIds = msg.dstId instanceof Array ? msg.dstId : [msg.dstId];
         const recipients = await Promise.all(dstIds.map(dstId => this.sendMessageTo(msg, dstId)));
-        msg.recipients = recipients.reduce((l1, l2) => l1.concat(l2), []);
+        msg.recipients = recipients.flat();
         msg.dstId = dstIds;
         msg.srcProjectId = this.projectId;
         return this.saveMessage(msg, this.projectId);
@@ -551,8 +544,8 @@ Client.MessageHandlers = {
     },
 
     'request-actions': function(msg) {
-        const {actionId, silent=true} = msg;
-        return this.requestActionsAfter(actionId, silent);
+        const {projectId, roleId, actionId, silent=true} = msg;
+        return this.requestActionsAfter(projectId, roleId, actionId, silent);
     }
 };
 

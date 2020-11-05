@@ -1,6 +1,6 @@
 {
   "name": "netsblox",
-  "version": "1.22.1",
+  "version": "1.24.0",
   "description": "Visual programming environment with networking support",
   "bin": {
     "netsblox": "./bin/netsblox"
@@ -95,7 +95,6 @@
     "mocha-chrome": "^2.2.0",
     "nodemon": "^1.18.10",
     "supertest": "^3.4.2",
-    "uglify-es": "^3.3.9",
     "xmlhttprequest": "^1.8.0"
   }
 }
