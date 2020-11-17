@@ -316,10 +316,10 @@ const char *wifi_status_str(int stat)
   }
 }
 
-void wifi_connect()
+int wifi_connect()
 {
-  if (*NET_PASSWD) WiFi.begin(NET_SSID, NET_PASSWD);
-  else WiFi.begin(NET_SSID);
+  if (*NET_PASSWD) return WiFi.begin(NET_SSID, NET_PASSWD);
+  else return WiFi.begin(NET_SSID);
 }
 
 void delLine(fs::FS &fs, const char *path, u32 line, const int char_to_delete)
@@ -1230,18 +1230,24 @@ void setup()
   Serial.begin(115200);
   Serial.println("Setting up Healthy pI V4...");
 
-  for (;;)
+  WiFi.macAddress(MAC); // read the mac address (needed for netsblox communication)
+  if (WiFi.status() == WL_NO_SHIELD) {
+    Serial.println("no wifi shield present");
+    //while (true);
+  }
+  for (int ii = 0; ii < 10; ++ii)
   {
     wifi_connect();
     if (WiFi.status() == WL_CONNECTED) break;
-    Serial.printf("wifi status: %s -- strength: %d\n", wifi_status_str(WiFi.status()), WiFi.RSSI());
-    delay(1000);
+    Serial.printf("wifi failed -- status: %s -- mac %02x:%02x:%02x:%02x:%02x:%02x\n",
+      wifi_status_str(WiFi.status()),
+      MAC[0], MAC[1], MAC[2], MAC[3], MAC[4], MAC[5]);
+    delay(2000);
   }
 
   Serial.printf("wifi connected -- local ip: %d\n", WiFi.localIP());
   Serial.printf("starting UDP server on port %d\n", LISTEN_PORT);
   UDP.begin(LISTEN_PORT);
-  WiFi.macAddress(MAC); // read the mac address (needed for netsblox communication)
   
   int buttonState = digitalRead(SLIDE_SWITCH);
   Serial.printf("slide switch state: %d\n", buttonState);
